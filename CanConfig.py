@@ -17,3 +17,12 @@ class PduIdInfor(list):
 pduInforMapping : Dict[int, PduIdInfor] = {0x111:[], 0x222:[], 0x333:[]}
 
 pduConfigMapping : Dict[int, PduIdConfig] = {0x111:PduIdConfig(3,0), 0x222:PduIdConfig(4,0), 0x333:PduIdConfig(5,0)}
+
+class StaticConfig:
+    N_Ar = 0.1
+    N_As = 0.1
+    N_Br = 0.1
+    N_Bs = 1
+    N_Cr = 0.5
+    N_Cs = 0.2
+    pass

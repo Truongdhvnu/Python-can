@@ -3,16 +3,13 @@ import time
 import threading
 from CanTpFrame import *
 
-class StaticConfig:
-    N_Ar = 0.1
-    N_As = 0.1
-    N_Br = 0.1
-    N_Bs = 1
-    N_Cr = 0.5
-    N_Cs = 0.2
-    pass
-
-class CanNode:
+""" 
+    Autosar
+    [SWS_CanTp_00096] : The CanTp module shall support several connections simultaneously
+    
+    This class describe a conection channel of canTP layer
+"""
+class CanTpCN:
     class CanTpReceiveHandle(can.Listener):
         def __init__(self, name:str, mutex:threading.Lock, buffer: list, callback) -> None:
             self.name = name
@@ -31,13 +28,13 @@ class CanNode:
                 self.callback()
         pass
 
-    def __init__(self, name:str) -> None:
+    def __init__(self, bus:can.BusABC, name:str) -> None:
+        self.bus = bus
         self.name = name
-        self.bus = can.ThreadSafeBus(interface='virtual', channel=1)
         self.revc_msgs_lst = []
         self.send_msgs_lst = []
         self.recv_msgs_mutex = threading.Lock()
-        self.listener = CanNode.CanTpReceiveHandle(name, self.recv_msgs_mutex, self.revc_msgs_lst, self.call_back)
+        self.listener = CanTpCN.CanTpReceiveHandle(name, self.recv_msgs_mutex, self.revc_msgs_lst, self.call_back)
         can.Notifier(self.bus, [self.listener])
         pass
 
@@ -84,7 +81,8 @@ class CanNode:
                 print("Transmiter: N_Bs timeout after send FF")
                 break
             else:
-                assert isFlowControlFrame(msg) # Check if FC frame
+                """ Check if FC frame """
+                assert isFlowControlFrame(msg) 
                 
                 if (msg.data[0] & 0x0F) == FlowStatus.OVFLW:
                     print("Receiver don't have enought available buffer. Exit Transmit")
@@ -177,41 +175,3 @@ class CanNode:
         
         print(f"{self.name} receive from bus:", ''.join(chr(i) for i in recv_mes))    
         print("Thread done\n")
-
-if __name__ == "__main__":
-    
-    id_lst = [0x19, 0x20, 0x21, 0x22, 0x23]
-
-    node1 = CanNode("node1")
-    node2 = CanNode("node2")
-    # node2.bus.send(can.Message(arbitration_id=0x123, data=[3, 4, 5, 1]))
-
-    msg = """hello"""
-    pduInforMapping[0x111] = [ord(c) for c in msg]
-
-    msg2 = """The impact of foreign cultures is like a wave crashing onto the shore. 
-            When it recedes, it leaves behind pearls, seashells, or stones, all
-            of which Chinese people collect eagerly at any cost."""
-    pduInforMapping[0x222] = [ord(c) for c in msg2]
-
-    # msg = "hihi"
-
-    # node1.canTp_Transmit(0x111, pduInforMapping[0x111])
-    
-    t1 = threading.Thread(target=CanNode.canTp_Transmit, args=(node1, 0x111, pduInforMapping[0x111]))
-    t1.start()
-
-    time.sleep(2)
-
-    t2 = threading.Thread(target=CanNode.canTp_Transmit, args=(node1, 0x222, pduInforMapping[0x222]))
-    t2.start()
-
-    count = 0
-    while True:
-        # node1.bus.send(can.Message(arbitration_id=id_lst[count], data=[3, 4, 5, 1], is_extended_id=False))
-        # node1.bus.send(msgs[0])
-
-        # print(len(node2.revc_msgs_lst))
-        count = (count + 1) % len(id_lst)
-        time.sleep(20)
-        pass
