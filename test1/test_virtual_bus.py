@@ -12,15 +12,15 @@ if __name__ == "__main__":
     bus1 = can.ThreadSafeBus(interface='virtual', channel=1)
     bus2 = can.ThreadSafeBus(interface='virtual', channel=1)
 
-    node1 = CanTpCN(bus1, "node1")
-    node2 = CanTpCN(bus2, "node2")
+    node1 = CanTpCN(bus1, "Node1")
+    node2 = CanTpCN(bus2, "Node2")
 
-    msg = """hello"""
+    msg = "hello"
     pduInforMapping[0x111] = [ord(c) for c in msg]
 
-    msg2 = """The impact of foreign cultures is like a wave crashing onto the shore. 
-            When it recedes, it leaves behind pearls, seashells, or stones, all
-            of which Chinese people collect eagerly at any cost."""
+    msg2 = """The impact of foreign cultures is like a wave crashing onto the shore.
+When it recedes, it leaves behind pearls, seashells, or stones, all
+of which Chinese people collect eagerly at any cost.\n"""
     pduInforMapping[0x222] = [ord(c) for c in msg2]
 
     # node1.canTp_Transmit(0x111, pduInforMapping[0x111])

@@ -1,9 +1,10 @@
 from typing import Dict
 
 class PduIdConfig:
-    def __init__(self, BS:int, ST_min:float) -> None:
+    def __init__(self, BS:int, ST_min:float, is_fd:bool=False) -> None:
         self.BS = BS
         self.ST_min = ST_min
+        self.is_fd = is_fd
         pass
 
 """
@@ -16,7 +17,7 @@ class PduIdInfor(list):
 
 pduInforMapping : Dict[int, PduIdInfor] = {0x111:[], 0x222:[], 0x333:[]}
 
-pduConfigMapping : Dict[int, PduIdConfig] = {0x111:PduIdConfig(3,0), 0x222:PduIdConfig(4,0), 0x333:PduIdConfig(5,0)}
+pduConfigMapping : Dict[int, PduIdConfig] = {0x111:PduIdConfig(3,0), 0x222:PduIdConfig(4,0,False), 0x333:PduIdConfig(5,0)}
 
 class StaticConfig:
     N_Ar = 0.1

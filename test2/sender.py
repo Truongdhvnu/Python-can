@@ -11,23 +11,18 @@ from CanConfig import *
 
 if __name__ == "__main__":
     
-    bus = can.ThreadSafeBus(interface='neovi', channel=1, baudrate=500000)
+    bus = can.ThreadSafeBus(interface='neovi', channel=1, baudrate=500000, receive_own_messages=False) 
 
     sender_conection = CanTpCN(bus, "Test_Sender")
 
-    msg = """hello"""
+    msg = "hello"
     pduInforMapping[0x111] = [ord(c) for c in msg]
 
-    msg2 = """The impact of foreign cultures is like a wave crashing onto the shore. 
-            When it recedes, it leaves behind pearls, seashells, or stones, all
-            of which Chinese people collect eagerly at any cost."""
+    msg2 = """The impact of foreign cultures is like a wave crashing onto the shore."""
     pduInforMapping[0x222] = [ord(c) for c in msg2]
-
-    # node1.canTp_Transmit(0x111, pduInforMapping[0x111])
     
-    t1 = threading.Thread(target=CanTpCN.canTp_Transmit, args=(sender_conection, 0x111, pduInforMapping[0x111]))
+    t1 = threading.Thread(target=CanTpCN.canTp_Transmit, args=(sender_conection, 0x222, pduInforMapping[0x222]))
     t1.start()
 
-    count = 0
     while True:
         pass

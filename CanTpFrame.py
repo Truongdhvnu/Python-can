@@ -24,28 +24,32 @@ class CanTpFrame(can.Message):
         super().__init__(timestamp, arbitration_id, is_extended_id, is_remote_frame, is_error_frame, channel, dlc, data, is_fd, is_rx, bitrate_switch, error_state_indicator, check)
         self.type = None
 
-
+"""
+    This class is to be call in both sender and receiver side
+    Sender side: This class is to create Single frame from infor such as id, SF_DL, N_SDU
+    Receiver S=side: when receiving message from bus, the receiver use this class to extract related data and PCI parameter 
+"""
 class SingleFrame(CanTpFrame):
     # def __new__(cls, data: list):
     #     # intending to check if datalegth is supported
     #     return super().__new__(cls)
     
-    def __init__(self, msg:can.Message=None, pduId:int = None, SF_DL:int = None, N_SDU:list = None, is_ex=False, is_fd=False) -> None:
+    def __init__(self, msg:can.Message = None, pduId:int = None, SF_DL:int = None, N_SDU:list = None, is_ex=False, is_fd=False) -> None:
         self.SF_DL = SF_DL
         self.N_SDU = N_SDU.copy()
 
         """ Receiver side: init SF from received message """
         if msg != None:
             super().__init__(arbitration_id=msg.arbitration_id, data=msg.data, is_extended_id=msg.is_extended_id, is_fd=msg.is_fd)
-            self.type = "SF"
+            self.type = "SingleFrame"
             return None
 
-        """ Sender side: init SF form N_SDU and SF_DL """
+        """ Sender side: init SF form N_PCI and N_SDU """
         # byte0 = /0x0/SF_DL/
         byte0 = (SF_DL & 0x0F)
         N_SDU.insert(0, byte0)
         super().__init__(arbitration_id=pduId, data=N_SDU, is_extended_id=is_ex, is_fd=is_fd)
-        self.type = "SF"
+        self.type = "SingleFrame"
         pass
 
     """ Receiver side: init SF from received message """
@@ -55,18 +59,23 @@ class SingleFrame(CanTpFrame):
         return SingleFrame(SF_DL=SF_DL, N_SDU=N_SDU, msg=msg)
 
 
+"""
+    This class is to be call in both sender and receiver side
+    Sender side: This class is to create Single frame from infor such as id, FF_DL, N_SDU
+    Receiver S=side: when receiving message from bus, the receiver use this class to extract related data and PCI parameters
+"""
 class FirstFrame(CanTpFrame):
-    def __init__(self, msg:can.Message=None, pduId:int = None, FF_DL:int = None, N_SDU:list = None, is_ex=False, is_fd=False) -> None:
+    def __init__(self, msg:can.Message = None, pduId:int = None, FF_DL:int = None, N_SDU:list = None, is_ex=False, is_fd=False) -> None:
         self.N_SDU = N_SDU.copy()
         self.FF_DL = FF_DL
 
         """ Receiver side: init FF from received message """
         if msg != None:
             super().__init__(arbitration_id=msg.arbitration_id, data=msg.data, is_extended_id=msg.is_extended_id, is_fd=msg.is_fd)
-            self.type = "FF"
+            self.type = "FirstFrame"
             return None
 
-        """ Sender side: init FF form N_SDU """
+        """ Sender side: init FF from N_PCI and N_SDU """
         # just handle FF_DL <= 4095
         byte0 = 0x10
         byte0 |= (FF_DL >> 8) & 0x0F
@@ -76,7 +85,7 @@ class FirstFrame(CanTpFrame):
         N_SDU.insert(1, byte1)
         
         super().__init__(arbitration_id=pduId, data=N_SDU, is_extended_id=is_ex, is_fd=is_fd)
-        self.type = "FF"
+        self.type = "FirstFrame"
     pass
 
     """ Receiver side: init SF from received message """
@@ -85,25 +94,29 @@ class FirstFrame(CanTpFrame):
         N_SDU = msg.data[2:]
         return FirstFrame(FF_DL=FF_DL, N_SDU=N_SDU, msg=msg)
 
-
+"""
+    This class is to be call in both sender and receiver side
+    Sender side: This class is to create Single frame from infor such as id, SN, N_SDU
+    Receiver S=side: when receiving message from bus, the receiver use this class to extract related data and PCI parameters 
+"""
 class ConFrame(CanTpFrame):
-    def __init__(self, msg:can.Message=None, pduId:int = None, SN = None, N_SDU: list = None, is_ex=False, is_fd=False) -> None:
+    def __init__(self, msg:can.Message = None, pduId:int = None, SN = None, N_SDU: list = None, is_ex=False, is_fd=False) -> None:
         self.SN = SN
         self.N_SDU = N_SDU.copy()
 
         """ Receiver side: init CF from received message """
         if msg != None:
             super().__init__(arbitration_id=msg.arbitration_id, data=msg.data, is_extended_id=msg.is_extended_id, is_fd=msg.is_fd)
-            self.type = "CF"
+            self.type = "ConFrame"
             return None
         
-        """ Sender side: init CF form N_SDU and SN """
+        """ Sender side: init Consecutive Frame by N_PCI and N_SDU """
         byte0 = 0x20
         byte0 |= (SN & 0x0F)
 
         N_SDU.insert(0, byte0)
         super().__init__(arbitration_id=pduId, data=N_SDU, is_extended_id=is_ex, is_fd=is_fd)
-        self.type = "CF"
+        self.type = "ConFrame"
     pass
 
     """ Receiver side: init CF from received message """
@@ -112,8 +125,24 @@ class ConFrame(CanTpFrame):
         N_SDU = msg.data[1:]
         return ConFrame(SN=SN, N_SDU=N_SDU, msg=msg)
 
+"""
+    This class is to be call in both sender and receiver side
+    Sender side: This class is to create Flow Control from infor such as id, FS, BS, ST_min
+    Receiver S=side: when receiving message from bus, the receiver use this class to extract related data and PCI parameters 
+"""
 class FlowControl(CanTpFrame):
-    def __init__(self, pduId:int, FS, is_ex=False, is_fd=False) -> None:
+    def __init__(self,  msg:can.Message = None, pduId:int = None, FS = None, BS= None, ST_min = None, is_ex=False, is_fd=False) -> None:
+        self.FS = FS
+
+        """ Receiver side: init FC from received message """
+        if msg != None:
+            super().__init__(arbitration_id=msg.arbitration_id, data=msg.data, is_extended_id=msg.is_extended_id, is_fd=msg.is_fd)
+            self.BS = BS
+            self.ST_min = ST_min
+            self.type = "FlowControl"
+            return None
+        
+        """ Receiver side: init FlowControl by N_PCI """
         self.data = []
         byte0 = 0x30
         byte0 |= (FS & 0x0F)
@@ -127,11 +156,20 @@ class FlowControl(CanTpFrame):
         self.data.append(byte1)
         self.data.append(byte2)
 
-        for i in range(5):
+        # 3 protocol N/A reduntdant byte
+        for _ in range(3):
             self.data.append(0x00)
 
         super().__init__(arbitration_id=pduId, data=self.data, is_extended_id=is_ex, is_fd=is_fd)
-        self.type = "FC"
+        self.type = "FlowControl"
+        pass
+
+    """ Receiver side: init FC from received message """
+    def deriveFromMessage(msg:can.Message):
+        FS = (msg.data[0] & 0x0F)
+        BS = msg.data[1]
+        ST_min = msg.data[2]
+        return FlowControl(msg=msg, FS=FS, BS=BS, ST_min=ST_min)
     pass
     
 
