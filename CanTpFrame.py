@@ -131,14 +131,22 @@ class ConFrame(CanTpFrame):
     Receiver S=side: when receiving message from bus, the receiver use this class to extract related data and PCI parameters 
 """
 class FlowControl(CanTpFrame):
-    def __init__(self,  msg:can.Message = None, pduId:int = None, FS = None, BS= None, ST_min = None, is_ex=False, is_fd=False) -> None:
+    def __init__(self,  msg:can.Message = None, pduId:int = None, FS = None, BS= 1, ST_min = 127, is_ex=False, is_fd=False) -> None:
         self.FS = FS
-
+        
+            
         """ Receiver side: init FC from received message """
         if msg != None:
             super().__init__(arbitration_id=msg.arbitration_id, data=msg.data, is_extended_id=msg.is_extended_id, is_fd=msg.is_fd)
+            """ Convert ST_min indicate by HEX to second (ISO)"""
+            if (ST_min <= 0x7F):
+                self.ST_min = ST_min * 0.001
+            elif ST_min <= 0xF9 and ST_min >= 0xF1:
+                self.ST_min = (ST_min & 0x0F) * 0.0001
+            else:
+                """Reserved ST_min -> Error handling by assign maximun sleep time (ISO)"""
+                self.ST_min = 0.127
             self.BS = BS
-            self.ST_min = ST_min
             self.type = "FlowControl"
             return None
         
