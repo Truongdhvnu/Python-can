@@ -3,6 +3,7 @@
     in Autosar architecture, it is the PduR
 """
 from CanConfig import *
+import time
 
 class Std_ReturnType:
     E_NOT_OK = 0
@@ -13,6 +14,7 @@ def PduR_CanTpStartOfReception():
 
 def PduR_CanTpCopyRxData(pduId:int, pduInforType:PduIdInfor):
     segmentedData = pduInforMapping[pduId].SduDataPtr[pduInforType.SduDataPtr : (pduInforType.SduDataPtr + pduInforType.SduLength)]
+    # time.sleep(0.095)  # simulate N_Cs time out
     return segmentedData
 
 def PduR_CanTpRxIndication(pduId:int, result:Std_ReturnType):

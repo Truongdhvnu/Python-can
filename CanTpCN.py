@@ -106,7 +106,10 @@ class CanTpCN:
         pduIdInfor_subDataRequest.SduLength = FF_SDU_LENGTH
         N_SDU = PduR_CanTpCopyRxData(pduId, pduIdInfor_subDataRequest)
         """ send the FF """
-        self.bus.send(FirstFrame(pduId=pduId, FF_DL=msg_length, N_SDU=N_SDU, is_fd=is_fd))
+
+        ff = FirstFrame(pduId=pduId, FF_DL=msg_length, N_SDU=N_SDU, is_fd=is_fd) 
+        self.bus.send(ff)
+        print("FF_DL", ff.FF_DL)
         
         """ Receive a Flow Controll before each block transmitting with time out is N_Bs """
         # These variables serve for coping segmentation data  
@@ -160,7 +163,9 @@ class CanTpCN:
                             PduR_CanTpTxConfirmation(pduId, Std_ReturnType.E_NOT_OK)
                             return None
                         else:
-                            time.sleep(fc_received.ST_min - (time.time() - time_stamp))
+                            continue_sleep = fc_received.ST_min - (time.time() - time_stamp)
+                            if continue_sleep > 0:
+                                time.sleep(fc_received.ST_min - (time.time() - time_stamp))
 
                         self.bus.send(ConFrame(pduId=pduId, SN=SN, N_SDU=N_SDU, is_fd=is_fd))
                         # print(f"{self.name} Transmiter side: Transmit CF data={''.join(chr(i) for i in N_SDU)}")

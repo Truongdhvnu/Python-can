@@ -90,7 +90,7 @@ class FirstFrame(CanTpFrame):
 
     """ Receiver side: init SF from received message """
     def deriveFromMessage(msg:can.Message):
-        FF_DL = ((msg.data[0] << 8) & 0x0F) | (msg.data[1] & 0xFF)
+        FF_DL = ((msg.data[0] << 8) & 0x0F00) | (msg.data[1] & 0xFF)
         N_SDU = msg.data[2:]
         return FirstFrame(FF_DL=FF_DL, N_SDU=N_SDU, msg=msg)
 

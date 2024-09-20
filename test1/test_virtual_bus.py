@@ -36,5 +36,5 @@ of which Chinese people collect eagerly at any cost.\n"""
     while True:
         # node1.bus.send(can.Message(arbitration_id=id_lst[count], data=[3, 4, 5, 1], is_extended_id=False))
         # print(len(node2.revc_msgs_lst))
-        time.sleep(20)
+        # time.sleep(20)
         pass

@@ -11,7 +11,7 @@ from CanConfig import *
 
 if __name__ == "__main__":
     
-    bus = can.ThreadSafeBus(interface='neovi', channel=1, baudrate=500000)
+    bus = can.ThreadSafeBus(interface='neovi', channel=1, baudrate=500000, receive_own_messages=False)
 
     receiver_conection = CanTpCN(bus, "Test_Recv")
 

@@ -1,0 +1,6 @@
+is_fd
+WFTmax
+NS
+N_Cr (đợi consecutive frame -> thời gian của STmin ~ N_Cr)
+N_Bs (tg đợi FlowControl bên sender, giảm config cho N_bs)
+N_Cs ()
