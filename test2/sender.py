@@ -13,7 +13,7 @@ if __name__ == "__main__":
     
     bus = can.ThreadSafeBus(interface='neovi', channel=1, baudrate=500000, receive_own_messages=False) 
 
-    sender_conection = CanTpCN(bus, "Test_Sender")
+    sender_connection = CanTpCN(bus, "Test_Sender")
 
     msg = "hello"
     pduInforMapping[0x111].SduDataPtr = [ord(c) for c in msg]
@@ -31,9 +31,8 @@ Essays on various topics."""
     print("Transmit message length", len(msg2))
 
     pduInforMapping[0x222].SduDataPtr = [ord(c) for c in msg2]
-    
-    t1 = threading.Thread(target=CanTpCN.TransmitMessage, args=(sender_conection, 0x222, pduInforMapping[0x222]))
-    t1.start()
 
-    while True:
-        pass
+    sender_connection.canTp_Transmit(0x222, pduInforMapping[0x222])
+
+    # while True:
+    #     pass

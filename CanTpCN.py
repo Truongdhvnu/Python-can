@@ -38,6 +38,8 @@ class CanTpCN:
         self.recv_msgs_mutex = threading.Lock()
         self.listener = CanTpCN.CanTpReceiveHandle(name, self.recv_msgs_mutex, self.revc_msgs_lst, self.messageReceiveHandle)
         can.Notifier(self.bus, [self.listener])
+        self.receiveThreadHandle = None
+        self.transmitThreadHandle = None
         pass
     
     def getBufferMessage(self, timeout=0) -> CanTpFrame:
@@ -74,7 +76,15 @@ class CanTpCN:
         
         return None
 
-    def TransmitMessage(self, pduId:int, fc_received: PduIdInfor):
+    def canTp_Transmit(self, pduId:int, pduIdInfor: PduIdInfor):
+        if (self.transmitThreadHandle != None) and (self.transmitThreadHandle.is_alive()):
+            raise(RuntimeError(f"The canTp channel {self.name} is occupied"))
+        else:
+            self.transmitThreadHandle = threading.Thread(target= CanTpCN.TransmitMessage, args=(self, pduId, pduIdInfor))
+            self.transmitThreadHandle.start()
+            self.transmitThreadHandle.join()
+
+    def TransmitMessage(self, pduId:int, pduIdInfor: PduIdInfor):
         is_fd = False
         if pduConfigMapping[pduId].is_fd:
             # Normal addressing
@@ -89,7 +99,7 @@ class CanTpCN:
             CF_SDU_LENGTH = 7
 
         pduIdInfor_subDataRequest = PduIdInfor()
-        msg_length = len(fc_received.SduDataPtr)
+        msg_length = len(pduIdInfor.SduDataPtr)
 
         # If the transmit Frame is a Single Frame 
         if (msg_length <= SF_SDU_LENGTH):
@@ -182,9 +192,14 @@ class CanTpCN:
         pass
     
     def messageReceiveHandle(self):
-        t = threading.Thread(target=self.AssembleMessage)
-        t.start()
+        self.receiveThreadHandle = threading.Thread(target=self.AssembleMessage)
+        self.receiveThreadHandle.start()
     
+    def waitUntilReceptionDone(self):
+        if isinstance(self.receiveThreadHandle, threading.Thread):
+            if self.receiveThreadHandle.is_alive():
+                self.receiveThreadHandle.join()
+
     def AssembleMessage(self):
         msg = self.getBufferMessage()
         id = msg.arbitration_id

@@ -44,19 +44,31 @@ class SingleFrame(CanTpFrame):
             self.type = "SingleFrame"
             return None
 
-        """ Sender side: init SF form N_PCI and N_SDU """
-        # byte0 = /0x0/SF_DL/
-        byte0 = (SF_DL & 0x0F)
-        N_SDU.insert(0, byte0)
+        """ Sender side: init SF from N_PCI and N_SDU """
+        # (CAN_DL > 8) <=> (using can FD)
+        if is_fd:
+            byte0 = 0x00
+            byte1 = SF_DL
+            N_SDU.insert(0, byte0)
+            N_SDU.insert(1, byte1)
+        else: # CAN_DL <= 8        
+            # byte0 = /0x0/SF_DL/
+            byte0 = (SF_DL & 0x0F)
+            N_SDU.insert(0, byte0)
+            
         super().__init__(arbitration_id=pduId, data=N_SDU, is_extended_id=is_ex, is_fd=is_fd)
         self.type = "SingleFrame"
         pass
 
     """ Receiver side: init SF from received message """
     def deriveFromMessage(msg:can.Message):
-        SF_DL = msg.data[0] & 0x0F
-        N_SDU = msg.data[1:]
-        return SingleFrame(SF_DL=SF_DL, N_SDU=N_SDU, msg=msg)
+        if len(msg.data) > 8 : # CAN_DL > 8
+            SF_DL = msg.data[1]
+            N_SDU = msg.data[2:]
+        else:
+            SF_DL = msg.data[0] & 0x0F
+            N_SDU = msg.data[1:]
+        return SingleFrame(SF_DL=SF_DL, N_SDU=N_SDU, msg=msg, is_fd=msg.is_fd)
 
 
 """
