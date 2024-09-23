@@ -23,7 +23,7 @@ class PduIdInfor:
 
 pduInforMapping : Dict[int, PduIdInfor] = {0x111:PduIdInfor(), 0x222:PduIdInfor(), 0x333:PduIdInfor()}
 
-pduConfigMapping : Dict[int, PduIdConfig] = {0x111:PduIdConfig(BS=3, ST_min=10, is_fd=False), 0x222:PduIdConfig(BS=4, ST_min=10, is_fd=False, WFTmax=2), 0x333:PduIdConfig(BS=5, is_fd=True)}
+pduConfigMapping : Dict[int, PduIdConfig] = {0x111:PduIdConfig(BS=3, ST_min=10, is_fd=False), 0x222:PduIdConfig(BS=5, ST_min=10, is_fd=False, WFTmax=2), 0x333:PduIdConfig(BS=5, is_fd=True)}
 
 # Normal and C_Cs timeout
 class StaticConfig:
@@ -50,7 +50,7 @@ class StaticConfig:
 #     N_Ar = 0.1
 #     N_As = 0.1
 #     N_Br = 0.1
-#     N_Bs = 0.05
+#     N_Bs = 0.5
 #     N_Cr = 0.2
 #     N_Cs = 0.1
 #     pass

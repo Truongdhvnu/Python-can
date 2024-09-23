@@ -12,23 +12,35 @@ from PduR import *
     This class contain methods to handle transmit and receive message of a channel
 """
 class CanTpCN:
-    class CanTpReceiveHandle(can.Listener):
-        def __init__(self, name:str, mutex:threading.Lock, buffer: list, callback) -> None:
-            self.name = name
-            self.buffer = buffer
-            self.mutex = mutex
-            self.handleReceiveConection = callback
+    # class CanTpReceiveHandle(can.Listener):
+    #     def __init__(self, name:str, mutex:threading.Lock, buffer: list, callback) -> None:
+    #         self.name = name
+    #         self.buffer = buffer
+    #         self.mutex = mutex
+    #         self.handleReceiveConection = callback
 
-        def on_message_received(self, msg) -> None:
-            self.mutex.acquire()
-            # print(f"{self.name} Receive: ID={hex(msg.arbitration_id)}, Data={msg.data}")      
-            self.buffer.append(msg)
-            self.mutex.release()
+    #     def on_message_received(self, msg) -> None:
+    #         self.mutex.acquire()
+    #         # print(f"{self.name} Receive: ID={hex(msg.arbitration_id)}, Data={msg.data}")      
+    #         self.buffer.append(msg)
+    #         self.mutex.release()
 
-            if (msg.data[0] & 0xF0) == 0x00 or (msg.data[0] & 0xF0) == 0x10:
-                PduR_CanTpStartOfReception()
-                self.handleReceiveConection()
-        pass
+    #         if (msg.data[0] & 0xF0) == 0x00 or (msg.data[0] & 0xF0) == 0x10:
+    #             PduR_CanTpStartOfReception()
+    #             self.handleReceiveConection()
+    #     pass
+
+    # def __init__(self, bus:can.BusABC, name:str) -> None:
+    #     self.bus = bus
+    #     self.name = name
+    #     self.revc_msgs_lst = []
+    #     self.send_msgs_lst = []
+    #     self.recv_msgs_mutex = threading.Lock()
+    #     self.listener = CanTpCN.CanTpReceiveHandle(name, self.recv_msgs_mutex, self.revc_msgs_lst, self.messageReceiveHandle)
+    #     can.Notifier(self.bus, [self.listener])
+    #     self.receiveThreadHandle = None
+    #     self.transmitThreadHandle = None
+    #     pass
 
     def __init__(self, bus:can.BusABC, name:str) -> None:
         self.bus = bus
@@ -36,8 +48,6 @@ class CanTpCN:
         self.revc_msgs_lst = []
         self.send_msgs_lst = []
         self.recv_msgs_mutex = threading.Lock()
-        self.listener = CanTpCN.CanTpReceiveHandle(name, self.recv_msgs_mutex, self.revc_msgs_lst, self.messageReceiveHandle)
-        can.Notifier(self.bus, [self.listener])
         self.receiveThreadHandle = None
         self.transmitThreadHandle = None
         pass
@@ -76,14 +86,6 @@ class CanTpCN:
         
         return None
 
-    def canTp_Transmit(self, pduId:int, pduIdInfor: PduIdInfor):
-        if (self.transmitThreadHandle != None) and (self.transmitThreadHandle.is_alive()):
-            raise(RuntimeError(f"The canTp channel {self.name} is occupied"))
-        else:
-            self.transmitThreadHandle = threading.Thread(target= CanTpCN.TransmitMessage, args=(self, pduId, pduIdInfor))
-            self.transmitThreadHandle.start()
-            self.transmitThreadHandle.join()
-
     def TransmitMessage(self, pduId:int, pduIdInfor: PduIdInfor):
         is_fd = False
         if pduConfigMapping[pduId].is_fd:
@@ -119,7 +121,7 @@ class CanTpCN:
 
         ff = FirstFrame(pduId=pduId, FF_DL=msg_length, N_SDU=N_SDU, is_fd=is_fd) 
         self.bus.send(ff)
-        print("FF_DL", ff.FF_DL)
+        print(f"{self.name}: transmit message FF_DL =", ff.FF_DL)
         
         """ Receive a Flow Controll before each block transmitting with time out is N_Bs """
         # These variables serve for coping segmentation data  
@@ -163,6 +165,7 @@ class CanTpCN:
                         # print("start, end", start, end)
                         N_SDU = PduR_CanTpCopyRxData(pduId, pduIdInfor_subDataRequest)
                         
+                        cf = ConFrame(pduId=pduId, SN=SN, N_SDU=N_SDU, is_fd=is_fd)
                         """
                             (ISO 15765-2)
                             N_Cs: Time until reception of the next consecutive frame N-PDU.
@@ -175,9 +178,10 @@ class CanTpCN:
                         else:
                             continue_sleep = fc_received.ST_min - (time.time() - time_stamp)
                             if continue_sleep > 0:
-                                time.sleep(fc_received.ST_min - (time.time() - time_stamp))
+                                # print("here")
+                                time.sleep(continue_sleep)
 
-                        self.bus.send(ConFrame(pduId=pduId, SN=SN, N_SDU=N_SDU, is_fd=is_fd))
+                        self.bus.send(cf)
                         # print(f"{self.name} Transmiter side: Transmit CF data={''.join(chr(i) for i in N_SDU)}")
                         SN = (SN + 1) % 16
 
@@ -190,15 +194,6 @@ class CanTpCN:
         PduR_CanTpTxConfirmation(pduId, Std_ReturnType.E_OK)
 
         pass
-    
-    def messageReceiveHandle(self):
-        self.receiveThreadHandle = threading.Thread(target=self.AssembleMessage)
-        self.receiveThreadHandle.start()
-    
-    def waitUntilReceptionDone(self):
-        if isinstance(self.receiveThreadHandle, threading.Thread):
-            if self.receiveThreadHandle.is_alive():
-                self.receiveThreadHandle.join()
 
     def AssembleMessage(self):
         msg = self.getBufferMessage()
