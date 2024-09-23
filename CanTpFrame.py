@@ -177,7 +177,7 @@ class FlowControl(CanTpFrame):
         self.data.append(byte2)
 
         # 3 protocol N/A reduntdant byte
-        for _ in range(3):
+        for _ in range(5):
             self.data.append(0x00)
 
         super().__init__(arbitration_id=pduId, data=self.data, is_extended_id=is_ex, is_fd=is_fd)

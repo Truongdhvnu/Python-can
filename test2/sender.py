@@ -12,11 +12,13 @@ from CanConfig import *
 if __name__ == "__main__":
     
     bus = can.ThreadSafeBus(interface='neovi', channel=1, baudrate=500000, receive_own_messages=False) 
-
     sender_connection = CanTpCN(bus, "Test_Sender")
 
-    msg = "hello"
-    pduInforMapping[0x111].SduDataPtr = [ord(c) for c in msg]
+    # bus2 = can.ThreadSafeBus(interface='neovi', channel=1, baudrate=500000, receive_own_messages=False) 
+    # sender_connection2 = CanTpCN(bus2, "Test_Sender2")
+    # msg = "hello world!"
+    # pduInforMapping[0x111].SduDataPtr = [ord(c) for c in msg]
+    # sender_connection2.canTp_Transmit(0x111, pduInforMapping[0x111])
 
     msg2 = """Essay writing is not everyone's cup of tea.
 Most students find it difficult to begin writing. 

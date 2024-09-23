@@ -129,7 +129,7 @@ class CanTpCN:
         while True:
             fc_received = self.getBufferMessage(timeout=StaticConfig.N_Bs)
             if fc_received == None:
-                print(f"{self.name} Transmiter side: N_Bs timeout when waiting CF")
+                print(f"{self.name} Transmiter side: N_Bs timeout when waiting FC")
                 PduR_CanTpTxConfirmation(pduId, Std_ReturnType.E_NOT_OK)
                 return None
             else:
@@ -215,11 +215,14 @@ class CanTpCN:
         # If the receive Frame is a First Frame
         assert isFirstFrame(msg)
 
+        """
+        (iso) The receiver retrieved value of RX_DL from the CAN_DL of the FF N_PDU
+        """
+        RX_DL = len(msg.data)
         msg = FirstFrame.deriveFromMessage(msg)
         recv_mes_length = msg.FF_DL
         recv_mes.extend(msg.N_SDU)
         print(f"{self.name}: Assembled incoming data: \"{''.join(chr(i) for i in msg.N_SDU)}\"")
-
 
         # print(f"Message's length: {recv_mes_length}, rec_msg start by: {''.join(chr(i) for i in recv_mes)}")
 
@@ -243,6 +246,10 @@ class CanTpCN:
 
                 msg = ConFrame.deriveFromMessage(msg)
 
+                # length of CFs frame need match the RX_DL retrieved from FF, except final CF
+                if recv_mes_length < len(recv_mes) + len(msg.N_SDU):
+                    assert len(msg.data) == RX_DL  
+
                 # Check Sequence Number
                 if desired_sequence_number != msg.SN:
                     print("Receive side: Sequence Number Error")
@@ -254,7 +261,7 @@ class CanTpCN:
                 recv_mes.extend(msg.N_SDU)
                 # print(f"{self.name}: Current assembled message: {''.join(chr(i) for i in recv_mes)}, length: {len(recv_mes)}")
                 print(f"{self.name}: Assembled incoming data: \"{''.join(chr(i) for i in msg.N_SDU)}\"")
-                if recv_mes_length == len(recv_mes):
+                if recv_mes_length <= len(recv_mes):
                     transmision_done = True
                     break
             print("\n")
@@ -262,8 +269,9 @@ class CanTpCN:
             if transmision_done:
                 break
             
-            self.bus.send(FlowControl(pduId=id, FS=FlowStatus.WAIT))
-            self.bus.send(FlowControl(pduId=id, FS=FlowStatus.WAIT))
+            # self.bus.send(FlowControl(pduId=id, FS=FlowStatus.WAIT))
+            # self.bus.send(FlowControl(pduId=id, FS=FlowStatus.WAIT))
+
             # self.bus.send(FlowControl(pduId=id, FS=FlowStatus.WAIT))
             self.bus.send(FlowControl(pduId=id, FS=FlowStatus.CTS))
         
