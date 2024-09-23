@@ -155,7 +155,7 @@ class CanTpCN:
                 if fc_received.FS == FlowStatus.CTS:
                     # Receive blocksize number of Consecutive Frames
                     for _ in range(fc_received.BS):
-                        time_stamp = time.time()
+                        # time_stamp = time.time()
                         
                         # Upper layer's call for coping segmentation data
                         start += CF_SDU_LENGTH # Then start = FF_SDU_LENGTH at first time this statement called
@@ -165,23 +165,23 @@ class CanTpCN:
                         # print("start, end", start, end)
                         N_SDU = PduR_CanTpCopyRxData(pduId, pduIdInfor_subDataRequest)
                         
-                        cf = ConFrame(pduId=pduId, SN=SN, N_SDU=N_SDU, is_fd=is_fd)
                         """
                             (ISO 15765-2)
                             N_Cs: Time until reception of the next consecutive frame N-PDU.
                             ST_min: The minimum time the sender is to wait between transmission of two CF N_PDUs.
                         """
-                        if time.time() - time_stamp > StaticConfig.N_Cs:
-                            print("N_Cs timeout")
-                            PduR_CanTpTxConfirmation(pduId, Std_ReturnType.E_NOT_OK)
-                            return None
-                        else:
-                            continue_sleep = fc_received.ST_min - (time.time() - time_stamp)
-                            if continue_sleep > 0:
-                                # print("here")
-                                time.sleep(continue_sleep)
+                        ### time.time() can consume a lot of time
+                        # if time.time() - time_stamp > StaticConfig.N_Cs:
+                        #     print("N_Cs timeout")
+                        #     PduR_CanTpTxConfirmation(pduId, Std_ReturnType.E_NOT_OK)
+                        #     return None
+                        # else:
+                        #     continue_sleep = fc_received.ST_min - (time.time() - time_stamp)
+                        #     if continue_sleep > 0:
+                        #         time.sleep(continue_sleep)
+                        time.sleep(fc_received.ST_min)
 
-                        self.bus.send(cf)
+                        self.bus.send(ConFrame(pduId=pduId, SN=SN, N_SDU=N_SDU, is_fd=is_fd))
                         # print(f"{self.name} Transmiter side: Transmit CF data={''.join(chr(i) for i in N_SDU)}")
                         SN = (SN + 1) % 16
 
