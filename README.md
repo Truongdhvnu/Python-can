@@ -3,14 +3,6 @@
 ## Project Overview
 This project simulates the CAN Transport Protocol (CanTp) layer in accordance with Autosar and ISO 15765-2 standards. It supports various CAN features, including SF, FF, CF, FC frames, Classical CAN, CAN FD, multiple connections, error and timeout handling.
 
--  N_PCI parameters:
-
-![abc](https://github.com/user-attachments/assets/cffb9469-fdfc-49c2-9e98-ccc378e2e6fc)
-
-- Tranmistion FLow and Timming
-
-![abcd](https://github.com/user-attachments/assets/54378c6b-d6db-4ebd-bf98-2b1be7ca8868)
-
 ### Features:
 - **Multiple Connections:** 
 Supports multiple connections, with each connection handled by a separate thread.
@@ -23,6 +15,16 @@ Multiple ID can be map to a same connection and only a ID can use the connection
 - **Parameter Simulation:** Parameters such as ST_min, WFTmax, N_Bs, N_Cs, N_Cr
 - **Upper Layer Interaction:** TxConfirmation and TxIndication to PduR, following Autosar specification
 
+### Code Structure
+**Class diagram overview:**
+
+![codestrt](https://github.com/user-attachments/assets/ed6f717e-c356-45dc-b396-88349c5d8a95)
+
+
+- **CanTpFrame**: Classes SingleFrame, FirstFrame, ConFrame, FlowControl are to merge N_SDU, N_PCI parameters to Frame (Sender Side) and to extract the infomation form a message received from bus (Receiver Side). Addition functions for checking valid frame or padding N_SDU.
+-  **CanTpCN:** Autosar requires CanTp module shall support several connections simultaneously. This class describe a connection channel of canTp layer, contain methods to handle transmit and receive message of a connection channel.
+-  **CanTp:** This class is to handle multiple connection. It receives message from a callback function of can.Listener instance, deliver message to a certain conection. It also handles connection, for example, if multiple N_SDU is mapped with a conection, it makesure that only a N_SDU can use the conection at a time.
+- **PduIdInfor & PduIdConfig**: Each PduID have its own config and Sdu information. Statically configured in `CanConfig` 
 ## Enviroment
 - **Python 3.11.2**
 - `python-can` with NeoVI support: `[neovi]`
