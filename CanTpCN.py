@@ -12,36 +12,6 @@ from PduR import *
     This class contain methods to handle transmit and receive message of a channel
 """
 class CanTpCN:
-    # class CanTpReceiveHandle(can.Listener):
-    #     def __init__(self, name:str, mutex:threading.Lock, buffer: list, callback) -> None:
-    #         self.name = name
-    #         self.buffer = buffer
-    #         self.mutex = mutex
-    #         self.handleReceiveConection = callback
-
-    #     def on_message_received(self, msg) -> None:
-    #         self.mutex.acquire()
-    #         # print(f"{self.name} Receive: ID={hex(msg.arbitration_id)}, Data={msg.data}")      
-    #         self.buffer.append(msg)
-    #         self.mutex.release()
-
-    #         if (msg.data[0] & 0xF0) == 0x00 or (msg.data[0] & 0xF0) == 0x10:
-    #             PduR_CanTpStartOfReception()
-    #             self.handleReceiveConection()
-    #     pass
-
-    # def __init__(self, bus:can.BusABC, name:str) -> None:
-    #     self.bus = bus
-    #     self.name = name
-    #     self.revc_msgs_lst = []
-    #     self.send_msgs_lst = []
-    #     self.recv_msgs_mutex = threading.Lock()
-    #     self.listener = CanTpCN.CanTpReceiveHandle(name, self.recv_msgs_mutex, self.revc_msgs_lst, self.messageReceiveHandle)
-    #     can.Notifier(self.bus, [self.listener])
-    #     self.receiveThreadHandle = None
-    #     self.transmitThreadHandle = None
-    #     pass
-
     def __init__(self, bus:can.BusABC, name:str) -> None:
         self.bus = bus
         self.name = name
@@ -50,6 +20,8 @@ class CanTpCN:
         self.recv_msgs_mutex = threading.Lock()
         self.receiveThreadHandle = None
         self.transmitThreadHandle = None
+        self.listener : can.Listener = None
+        self.notifier : can.Notifier = None
         pass
     
     def getBufferMessage(self, timeout=0) -> CanTpFrame:
