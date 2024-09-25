@@ -13,8 +13,8 @@ if __name__ == "__main__":
     virtual_bus1 = can.ThreadSafeBus(interface='virtual', channel=1, receive_own_messages=False)
     virtual_bus2 = can.ThreadSafeBus(interface='virtual', channel=1, receive_own_messages=False)
     canTpCnList = [] 
-    canTpCnList.append(CanTpCN(virtual_bus1, "Sender"))
-    canTpCnList.append(CanTpCN(virtual_bus2, "Receiver"))
+    canTpCnList.append(CanTpCN(virtual_bus1, "Node1"))
+    canTpCnList.append(CanTpCN(virtual_bus2, "Node2"))
     canTpConnectionMapping : Dict[int, CanTpCN] = {0x111:canTpCnList[0], 0x222:canTpCnList[1], 0x444:canTpCnList[0]}
     canTp = CanTp(None, canTpCnList, canTpConnectionMapping, interface="virtual")
 
@@ -29,7 +29,7 @@ if __name__ == "__main__":
 
     ### Test case 1: ID=0x111: Classical CAN, Message is splited to SF and CFs
     print("Test case 1: ")
-    msg = "Hello, My name is Joh"
+    msg = "Hello World!, My name is Joher"
     pduInforMapping[0x111].SduDataPtr = [ord(c) for c in msg]
     canTp.canTp_Transmit(0x111, pduInforMapping[0x111])
     time.sleep(1)
@@ -47,7 +47,7 @@ if __name__ == "__main__":
 
 
 
-    ### Test case 3: 0x222: BS=4, is_fd=True, transmition of FF and CF"""
+#     ### Test case 3: 0x222: BS=4, is_fd=True, transmition of FF and CF, FF_DL > 4095"""
     print("Test case 3: CAN_FD, Message is splited to FF and CFs")
     msg2 = """Owing to the great variety of crimes that can be punishable by prison, some people
 argue that not all criminals are the same and it would therefore be more appropriate to give

@@ -28,7 +28,7 @@ pduInforMapping : Dict[int, PduIdInfor] = { 0x111:PduIdInfor(), \
 
 
 pduConfigMapping : Dict[int, PduIdConfig] = {   0x111:PduIdConfig(BS=3, ST_min=1, is_fd=False),\
-                                                0x222:PduIdConfig(BS=5, ST_min=1, is_fd=False, WFTmax=2),\
+                                                0x222:PduIdConfig(BS=5, ST_min=1, is_fd=True, WFTmax=2),\
                                                 0x333:PduIdConfig(BS=5, is_fd=True),\
                                                 0x444:PduIdConfig(BS=3, ST_min=1, is_fd=True)}
 
@@ -41,7 +41,7 @@ class StaticConfig:
     N_As = 0.1
     N_Br = 0.1
     N_Bs = 1
-    N_Cr = 0.5
+    N_Cr = 1
     N_Cs = 0.1
     pass
 

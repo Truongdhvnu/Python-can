@@ -170,7 +170,7 @@ class FirstFrame(CanTpFrame):
             N_SDU = msg.data[2:]
         else:
             FF_DL = (msg.data[2] << 24) | (msg.data[3] << 16) | (msg.data[4] << 8) | msg.data[5]
-            N_SDU = msg.data[5:]
+            N_SDU = msg.data[6:]
 
         return FirstFrame(FF_DL=FF_DL, N_SDU=N_SDU, msg=msg)
 
@@ -245,10 +245,9 @@ class ConFrame(CanTpFrame):
     Receiver S=side: when receiving message from bus, the receiver use this class to extract related data and PCI parameters 
 """
 class FlowControl(CanTpFrame):
-    def __init__(self,  msg:can.Message = None, pduId:int = None, FS = None, BS= 1, ST_min = 127, is_ex=False, is_fd=False) -> None:
+    def __init__(self,  msg:can.Message = None, pduId:int = None, FS = None, BS = 1, ST_min = 127, is_ex=False, is_fd=False) -> None:
         self.FS = FS
         
-            
         """ Receiver side: init FC from received message """
         if msg != None:
             super().__init__(arbitration_id=msg.arbitration_id, data=msg.data, is_extended_id=msg.is_extended_id, is_fd=msg.is_fd)

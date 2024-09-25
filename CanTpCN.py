@@ -3,6 +3,8 @@ import time
 import threading
 from CanTpFrame import *
 from PduR import *
+import random
+import math
 
 """ 
     Autosar
@@ -73,9 +75,9 @@ class CanTpCN:
         else:
             SF_SDU_LENGTH = 7
             if msg_length < 4095:
-                FF_SDU_LENGTH = 6 # FF_DL < 4095
+                FF_SDU_LENGTH = 6       # FF_DL < 4095
             else:
-                FF_SDU_LENGTH = 2 # FF_DL > 4095 (More 4 bytes are used to encode FF_DL)
+                FF_SDU_LENGTH = 2       # FF_DL > 4095 (More 4 bytes are used to encode FF_DL)
             CF_SDU_LENGTH = 7
 
         pduIdInfor_subDataRequest = PduIdInfor()
@@ -203,9 +205,8 @@ class CanTpCN:
 
         # print(f"Message's length: {recv_mes_length}, rec_msg start by: {''.join(chr(i) for i in recv_mes)}")
 
-        self.bus.send(FlowControl(pduId=msg.arbitration_id, FS=FlowStatus.CTS))
-
         BlockSize = pduConfigMapping[msg.arbitration_id].BS
+        self.bus.send(FlowControl(pduId=msg.arbitration_id, FS=FlowStatus.CTS))
         
         desired_sequence_number = 1
         is_final_conFrame = False
@@ -256,13 +257,24 @@ class CanTpCN:
                 if is_final_conFrame:
                     transmision_done = True
                     break
-            print("\n")
             
             if transmision_done:
                 break
             
-            # self.bus.send(FlowControl(pduId=id, FS=FlowStatus.WAIT))
+            ### Send wait if remaining bufer is not enough
+            count = 0
+            while self.isReceiveBufferAvaiable(BlockSize * RX_DL) == False:
+                count += 1
+                if count == pduConfigMapping[msg.arbitration_id].WFTmax:
+                    print("Receive side: Reach WFTmax in a row. Abort connection")
+                    PduR_CanTpRxIndication(id, Std_ReturnType.E_NOT_OK)
+                    break
+                self.bus.send(FlowControl(pduId=id, FS=FlowStatus.WAIT))
+            ### Else sen CTS
             self.bus.send(FlowControl(pduId=id, FS=FlowStatus.CTS))
-        
+
         print(f"+ {self.name} received message ID={hex(id)} succesfully from bus: \n{''.join(chr(i) for i in recv_mes)}")    
         PduR_CanTpRxIndication(id, Std_ReturnType.E_OK)
+
+    def isReceiveBufferAvaiable(self, bufferSize):
+        return random.choices([True, False], weights=[90, 10])[0]

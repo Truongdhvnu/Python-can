@@ -3,7 +3,7 @@ from typing import Dict
 import threading
 import can
 
-""" Listiner Handler for CanValue bus"""
+""" Listener Handler for CanValue bus"""
 class CanTpReceiveHandle(can.Listener):
     def __init__(self, canTpConnectionMapping : Dict[int, CanTpCN], newConnectionCallback) -> None:
         self.newConnectionCallback = newConnectionCallback
@@ -22,7 +22,7 @@ class CanTpReceiveHandle(can.Listener):
             self.newConnectionCallback(canTpConnection)
     pass
 
-""" Listiner Handler for Virtual bus"""
+""" Listener Handler for Virtual bus"""
 class CanTpVirtualBusReceiveHandle(can.Listener):
     def __init__(self, connection:str, mutex:threading.Lock, buffer: list, callback) -> None:
         self.connection = connection
