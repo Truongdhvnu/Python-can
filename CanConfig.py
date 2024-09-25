@@ -21,9 +21,19 @@ class PduIdInfor:
         self.SduDataPtr = []
     pass
 
-pduInforMapping : Dict[int, PduIdInfor] = {0x111:PduIdInfor(), 0x222:PduIdInfor(), 0x333:PduIdInfor()}
+pduInforMapping : Dict[int, PduIdInfor] = { 0x111:PduIdInfor(), \
+                                            0x222:PduIdInfor(), \
+                                            0x333:PduIdInfor(), \
+                                            0x444:PduIdInfor()  }
 
-pduConfigMapping : Dict[int, PduIdConfig] = {0x111:PduIdConfig(BS=3, ST_min=10, is_fd=False), 0x222:PduIdConfig(BS=5, ST_min=10, is_fd=False, WFTmax=2), 0x333:PduIdConfig(BS=5, is_fd=True)}
+
+pduConfigMapping : Dict[int, PduIdConfig] = {   0x111:PduIdConfig(BS=3, ST_min=1, is_fd=False),\
+                                                0x222:PduIdConfig(BS=5, ST_min=1, is_fd=False, WFTmax=2),\
+                                                0x333:PduIdConfig(BS=5, is_fd=True),\
+                                                0x444:PduIdConfig(BS=3, ST_min=1, is_fd=True)}
+
+
+""" Uncomment one of below timeout configs for testing"""
 
 # Normal and C_Cs timeout
 class StaticConfig:

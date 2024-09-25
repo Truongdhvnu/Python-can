@@ -36,7 +36,7 @@ class CanTpVirtualBusReceiveHandle(can.Listener):
         self.buffer.append(msg)
         self.mutex.release()
 
-        if (msg.data[0] & 0xF0) == 0x00 or (msg.data[0] & 0xF0) == 0x10:
+        if isSingleFrame(msg) or isFirstFrame(msg):
             PduR_CanTpStartOfReception()
             self.handleReceiveConection(self.connection)
     pass
@@ -67,7 +67,6 @@ class CanTp:
         else:
             connection.transmitThreadHandle = threading.Thread(target= connection.TransmitMessage, args=(pduId, pduIdInfor))
             connection.transmitThreadHandle.start()
-            # connection.transmitThreadHandle.join()
 
     def canTp_Stop(self):
         if self.interface == "virtual":

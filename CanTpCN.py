@@ -59,21 +59,26 @@ class CanTpCN:
         return None
 
     def TransmitMessage(self, pduId:int, pduIdInfor: PduIdInfor):
+        msg_length = len(pduIdInfor.SduDataPtr)
+
         is_fd = False
         if pduConfigMapping[pduId].is_fd:
-            # Normal addressing
             SF_SDU_LENGTH = TX_DL - 2
-            FF_SDU_LENGTH = TX_DL - 2
+            if msg_length < 4095:
+                FF_SDU_LENGTH = TX_DL - 2 # FF_DL < 4095
+            else:
+                FF_SDU_LENGTH = TX_DL - 6 # FF_DL > 4095 (More 4 bytes are used to encode FF_DL)
             CF_SDU_LENGTH = TX_DL - 1
             is_fd = True
         else:
-            # Normal addressing
             SF_SDU_LENGTH = 7
-            FF_SDU_LENGTH = 6
+            if msg_length < 4095:
+                FF_SDU_LENGTH = 6 # FF_DL < 4095
+            else:
+                FF_SDU_LENGTH = 2 # FF_DL > 4095 (More 4 bytes are used to encode FF_DL)
             CF_SDU_LENGTH = 7
 
         pduIdInfor_subDataRequest = PduIdInfor()
-        msg_length = len(pduIdInfor.SduDataPtr)
 
         # If the transmit Frame is a Single Frame 
         if (msg_length <= SF_SDU_LENGTH):
@@ -127,7 +132,7 @@ class CanTpCN:
                 if fc_received.FS == FlowStatus.CTS:
                     # Receive blocksize number of Consecutive Frames
                     for _ in range(fc_received.BS):
-                        # time_stamp = time.time()
+                        time_stamp = time.time()
                         
                         # Upper layer's call for coping segmentation data
                         start += CF_SDU_LENGTH # Then start = FF_SDU_LENGTH at first time this statement called
@@ -143,14 +148,14 @@ class CanTpCN:
                             ST_min: The minimum time the sender is to wait between transmission of two CF N_PDUs.
                         """
                         ### time.time() can consume a lot of time
-                        # if time.time() - time_stamp > StaticConfig.N_Cs:
-                        #     print("N_Cs timeout")
-                        #     PduR_CanTpTxConfirmation(pduId, Std_ReturnType.E_NOT_OK)
-                        #     return None
-                        # else:
-                        #     continue_sleep = fc_received.ST_min - (time.time() - time_stamp)
-                        #     if continue_sleep > 0:
-                        #         time.sleep(continue_sleep)
+                        if time.time() - time_stamp > StaticConfig.N_Cs:
+                            print("N_Cs timeout")
+                            PduR_CanTpTxConfirmation(pduId, Std_ReturnType.E_NOT_OK)
+                            return None
+                        else:
+                            continue_sleep = fc_received.ST_min - (time.time() - time_stamp)
+                            if continue_sleep > 0:
+                                time.sleep(continue_sleep)
                         time.sleep(fc_received.ST_min)
 
                         self.bus.send(ConFrame(pduId=pduId, SN=SN, N_SDU=N_SDU, is_fd=is_fd))
@@ -171,12 +176,17 @@ class CanTpCN:
         msg = self.getBufferMessage()
         id = msg.arbitration_id
         recv_mes = []
-        recv_mes_length = 0
+        FF_DL = 0
 
         # If the receive Frame is a Single Frame
         if isSingleFrame(msg):
             frame = SingleFrame.deriveFromMessage(msg=msg)
-            print("Receive SF in thread:", frame.SF_DL, frame.N_SDU)
+            if checkValidSF_DL(frame.SF_DL, len(msg.data)) == False:
+                print("SF_DL is not match with data length received", frame.SF_DL, len(msg.data))
+                PduR_CanTpRxIndication(id, Std_ReturnType.E_NOT_OK)
+            else:
+                print("Receive SF in thread:", frame.SF_DL, frame.N_SDU)
+                PduR_CanTpRxIndication(id, Std_ReturnType.E_OK)
             return None
         
         # If the receive Frame is a First Frame
@@ -187,16 +197,18 @@ class CanTpCN:
         """
         RX_DL = len(msg.data)
         msg = FirstFrame.deriveFromMessage(msg)
-        recv_mes_length = msg.FF_DL
+        FF_DL = msg.FF_DL
         recv_mes.extend(msg.N_SDU)
         print(f"{self.name}: Assembled incoming data: \"{''.join(chr(i) for i in msg.N_SDU)}\"")
 
         # print(f"Message's length: {recv_mes_length}, rec_msg start by: {''.join(chr(i) for i in recv_mes)}")
 
         self.bus.send(FlowControl(pduId=msg.arbitration_id, FS=FlowStatus.CTS))
+
         BlockSize = pduConfigMapping[msg.arbitration_id].BS
         
         desired_sequence_number = 1
+        is_final_conFrame = False
         while True:
             transmision_done = False
             for _ in range(BlockSize):
@@ -213,9 +225,13 @@ class CanTpCN:
 
                 msg = ConFrame.deriveFromMessage(msg)
 
-                # length of CFs frame need match the RX_DL retrieved from FF, except final CF
-                if recv_mes_length < len(recv_mes) + len(msg.N_SDU):
-                    assert len(msg.data) == RX_DL  
+                # length of CFs frame need to be match the RX_DL retrieved from FF, except final CF
+                if FF_DL > len(recv_mes) + len(msg.N_SDU):
+                    if len(msg.data) != RX_DL:
+                        print("Length of CFs frame need to be match the RX_DL retrieved from FF, except final CF")
+                        PduR_CanTpRxIndication(id, Std_ReturnType.E_NOT_OK)
+                else:
+                    is_final_conFrame = True
 
                 # Check Sequence Number
                 if desired_sequence_number != msg.SN:
@@ -225,10 +241,19 @@ class CanTpCN:
                 else:
                     desired_sequence_number = (desired_sequence_number + 1) % 16
 
-                recv_mes.extend(msg.N_SDU)
+                if is_final_conFrame:
+                    if (FF_DL - len(recv_mes) > 0):
+                        print("Retrieved actual data from final CF with padded N_SDU")
+                    final_segmented_data = msg.N_SDU[:FF_DL - len(recv_mes)]
+                    recv_mes.extend(final_segmented_data)
+                    print(f"{self.name}: Assembled final CF data: \"{''.join(chr(i) for i in final_segmented_data)}\"")
+                else:
+                    recv_mes.extend(msg.N_SDU)
+                    print(f"{self.name}: Assembled imcomming frame's data: \"{''.join(chr(i) for i in msg.N_SDU)}\"")
+                    
                 # print(f"{self.name}: Current assembled message: {''.join(chr(i) for i in recv_mes)}, length: {len(recv_mes)}")
-                print(f"{self.name}: Assembled incoming data: \"{''.join(chr(i) for i in msg.N_SDU)}\"")
-                if recv_mes_length <= len(recv_mes):
+                
+                if is_final_conFrame:
                     transmision_done = True
                     break
             print("\n")
@@ -236,9 +261,6 @@ class CanTpCN:
             if transmision_done:
                 break
             
-            # self.bus.send(FlowControl(pduId=id, FS=FlowStatus.WAIT))
-            # self.bus.send(FlowControl(pduId=id, FS=FlowStatus.WAIT))
-
             # self.bus.send(FlowControl(pduId=id, FS=FlowStatus.WAIT))
             self.bus.send(FlowControl(pduId=id, FS=FlowStatus.CTS))
         
